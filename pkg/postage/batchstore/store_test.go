@@ -19,7 +19,7 @@ func TestBatchStoreGet(t *testing.T) {
 	key := batchstore.BatchKey(testBatch.ID)
 
 	stateStore := mock.NewStateStore()
-	batchStore := batchstore.New(stateStore)
+	batchStore, _ := batchstore.New(stateStore)
 
 	stateStorePut(t, stateStore, key, testBatch)
 	got := batchStoreGetBatch(t, batchStore, testBatch.ID)
@@ -31,7 +31,7 @@ func TestBatchStorePut(t *testing.T) {
 	key := batchstore.BatchKey(testBatch.ID)
 
 	stateStore := mock.NewStateStore()
-	batchStore := batchstore.New(stateStore)
+	batchStore, _ := batchstore.New(stateStore)
 
 	batchStorePutBatch(t, batchStore, testBatch)
 
@@ -44,10 +44,13 @@ func TestBatchStoreGetChainState(t *testing.T) {
 	testChainState := postagetest.NewChainState()
 
 	stateStore := mock.NewStateStore()
-	bStore := batchstore.New(stateStore)
+	bStore, _ := batchstore.New(stateStore)
 
-	stateStorePut(t, stateStore, batchstore.StateKey, testChainState)
-	got := batchStoreGetChainState(t, bStore)
+	err := bStore.PutChainState(testChainState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := bStore.GetChainState()
 	postagetest.CompareChainState(t, testChainState, got)
 }
 
@@ -55,7 +58,7 @@ func TestBatchStorePutChainState(t *testing.T) {
 	testChainState := postagetest.NewChainState()
 
 	stateStore := mock.NewStateStore()
-	bStore := batchstore.New(stateStore)
+	bStore, _ := batchstore.New(stateStore)
 
 	batchStorePutChainState(t, bStore, testChainState)
 	var got postage.ChainState
@@ -86,7 +89,7 @@ func batchStoreGetBatch(t *testing.T, st postage.Storer, id []byte) *postage.Bat
 
 func batchStorePutBatch(t *testing.T, st postage.Storer, b *postage.Batch) {
 	t.Helper()
-	if err := st.Put(b); err != nil {
+	if err := st.Put(b, b.Value, b.Depth); err != nil {
 		t.Fatalf("postage storer put: %v", err)
 	}
 }
@@ -96,13 +99,4 @@ func batchStorePutChainState(t *testing.T, st postage.Storer, cs *postage.ChainS
 	if err := st.PutChainState(cs); err != nil {
 		t.Fatalf("postage storer put chain state: %v", err)
 	}
-}
-
-func batchStoreGetChainState(t *testing.T, st postage.Storer) *postage.ChainState {
-	t.Helper()
-	cs, err := st.GetChainState()
-	if err != nil {
-		t.Fatalf("postage storer get chain state: %v", err)
-	}
-	return cs
 }

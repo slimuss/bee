@@ -23,9 +23,10 @@ type EventUpdater interface {
 // available) block.
 type Storer interface {
 	Get(id []byte) (*Batch, error)
-	Put(*Batch) error
+	Put(*Batch, *big.Int, uint8) error
 	PutChainState(*ChainState) error
-	GetChainState() (*ChainState, error)
+	GetChainState() *ChainState
+	SetUnreserve(func(batchID []byte, depth uint8) error)
 }
 
 // Listener provides a blockchain event iterator.
